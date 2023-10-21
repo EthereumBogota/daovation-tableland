@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-import './IAppNFT.sol';
+// import './IAppNFT.sol';
 
 pragma solidity ^0.8.19;
 
@@ -70,12 +70,12 @@ contract AppEvent {
     event TransferredTicket(address buyer, address newOwner);
 
     constructor(
-        address[] memory _varAdr,
+        address _owner,
         string[] memory _varStr,
         uint256[] memory _varInt
     ) {
-        eventOwner = _varAdr[uint256(consVarAdr.owner)];
-        eventNfts = _varAdr[uint256(consVarAdr.nfts)];
+        eventOwner = _owner;
+        // eventNfts = _varAdr[uint256(consVarAdr.nfts)];
 
         eventId = _varStr[uint256(consVarStr.eventId)];
         eventName = _varStr[uint256(consVarStr.eventName)];
@@ -89,122 +89,122 @@ contract AppEvent {
         ];
     }
 
-    function reedemNft(string calldata _eventSecretWord) public {
-        require(eventAttendees[msg.sender] == true, "You do not have a ticket");
-        require(
-            block.timestamp <= eventReedemableTime,
-            "You cannot reedem your NFT yet"
-        );
-        require(
-            keccak256(abi.encodePacked(_eventSecretWord)) ==
-                eventSecretWordHash,
-            "Secret word is incorrect"
-        );
-        require(
-            IAppNFT(eventNfts).balanceOf(msg.sender) == 0,
-            "You already have a NFT"
-        );
+    // function reedemNft(string calldata _eventSecretWord) public {
+    //     require(eventAttendees[msg.sender] == true, "You do not have a ticket");
+    //     require(
+    //         block.timestamp <= eventReedemableTime,
+    //         "You cannot reedem your NFT yet"
+    //     );
+    //     require(
+    //         keccak256(abi.encodePacked(_eventSecretWord)) ==
+    //             eventSecretWordHash,
+    //         "Secret word is incorrect"
+    //     );
+    //     require(
+    //         IAppNFT(eventNfts).balanceOf(msg.sender) == 0,
+    //         "You already have a NFT"
+    //     );
 
-        IAppNFT(eventNfts).safeMint(msg.sender);
-    }
+    //     IAppNFT(eventNfts).safeMint(msg.sender);
+    // }
 
-    function updateEventName(string memory _eventName) public {
-        eventName = _eventName;
+    // function updateEventName(string memory _eventName) public {
+    //     eventName = _eventName;
 
-        emit UpdatedEventName(eventName);
-        (_eventName);
-    }
+    //     emit UpdatedEventName(eventName);
+    //     (_eventName);
+    // }
 
-    function updateEventDescription(
-        string memory _eventDescription // onlyOwner
-    ) public {
-        eventDescription = _eventDescription;
+    // function updateEventDescription(
+    //     string memory _eventDescription // onlyOwner
+    // ) public {
+    //     eventDescription = _eventDescription;
 
-        emit UpdatedEventDescription(eventDescription);
-    }
+    //     emit UpdatedEventDescription(eventDescription);
+    // }
 
-    function updateEventLocation(
-        string memory _eventLocation // onlyOwner
-    ) public {
-        eventLocation = _eventLocation;
+    // function updateEventLocation(
+    //     string memory _eventLocation // onlyOwner
+    // ) public {
+    //     eventLocation = _eventLocation;
 
-        emit UpdatedEventLocation(eventLocation);
-    }
+    //     emit UpdatedEventLocation(eventLocation);
+    // }
 
-    function updateEventStartTime(
-        uint256 _eventStartTime // onlyOwner
-    ) public {
-        require(
-            _eventStartTime > eventStartTime,
-            "Start time must be greater than start time"
-        );
+    // function updateEventStartTime(
+    //     uint256 _eventStartTime // onlyOwner
+    // ) public {
+    //     require(
+    //         _eventStartTime > eventStartTime,
+    //         "Start time must be greater than start time"
+    //     );
 
-        eventStartTime = _eventStartTime;
+    //     eventStartTime = _eventStartTime;
 
-        emit UpdatedEventStartTime(eventStartTime);
-    }
+    //     emit UpdatedEventStartTime(eventStartTime);
+    // }
 
-    function updateEventEndTime(
-        uint256 _eventEndTime // onlyOwner
-    ) public {
-        require(
-            _eventEndTime > eventStartTime,
-            "End time must be greater than start time"
-        );
+    // function updateEventEndTime(
+    //     uint256 _eventEndTime // onlyOwner
+    // ) public {
+    //     require(
+    //         _eventEndTime > eventStartTime,
+    //         "End time must be greater than start time"
+    //     );
 
-        eventEndTime = _eventEndTime;
+    //     eventEndTime = _eventEndTime;
 
-        emit UpdatedEventEndTime(eventEndTime);
-    }
+    //     emit UpdatedEventEndTime(eventEndTime);
+    // }
 
-    function updateEventTotalTickets(
-        uint256 _eventTotalTickets // onlyOwner
-    ) public {
-        require(
-            _eventTotalTickets >= eventRemainingTickets,
-            "Total tickets must be greater than or equal to remaining tickets"
-        );
+    // function updateEventTotalTickets(
+    //     uint256 _eventTotalTickets // onlyOwner
+    // ) public {
+    //     require(
+    //         _eventTotalTickets >= eventRemainingTickets,
+    //         "Total tickets must be greater than or equal to remaining tickets"
+    //     );
 
-        eventTotalTickets = _eventTotalTickets;
+    //     eventTotalTickets = _eventTotalTickets;
 
-        emit UpdatedEventTotalTickets(eventTotalTickets);
-    }
+    //     emit UpdatedEventTotalTickets(eventTotalTickets);
+    // }
 
-    function updateEventOwner(
-        address _eventOwner // onlyOwner
-    ) public {
-        eventOwner = _eventOwner;
+    // function updateEventOwner(
+    //     address _eventOwner // onlyOwner
+    // ) public {
+    //     eventOwner = _eventOwner;
 
-        emit UpdatedEventOwner(eventOwner);
-    }
+    //     emit UpdatedEventOwner(eventOwner);
+    // }
 
-    function buyTicket() public {
-        require(
-            eventAttendees[msg.sender] == false,
-            "You already have a ticket"
-        );
+    // function buyTicket() public {
+    //     require(
+    //         eventAttendees[msg.sender] == false,
+    //         "You already have a ticket"
+    //     );
 
-        eventAttendees[msg.sender] = true;
-        eventRemainingTickets -= 1;
+    //     eventAttendees[msg.sender] = true;
+    //     eventRemainingTickets -= 1;
 
-        emit BoughtTicket(msg.sender);
-    }
+    //     emit BoughtTicket(msg.sender);
+    // }
 
-    function refundTicket() public {
-        require(eventAttendees[msg.sender] == true, "You do not have a ticket");
+    // function refundTicket() public {
+    //     require(eventAttendees[msg.sender] == true, "You do not have a ticket");
 
-        eventAttendees[msg.sender] = false;
-        eventRemainingTickets += 1;
+    //     eventAttendees[msg.sender] = false;
+    //     eventRemainingTickets += 1;
 
-        emit RefundedTicket(msg.sender);
-    }
+    //     emit RefundedTicket(msg.sender);
+    // }
 
-    function transferTicket(address _newOwner) public {
-        require(eventAttendees[msg.sender] == true, "You do not have a ticket");
+    // function transferTicket(address _newOwner) public {
+    //     require(eventAttendees[msg.sender] == true, "You do not have a ticket");
 
-        eventAttendees[msg.sender] = false;
-        eventAttendees[_newOwner] = true;
+    //     eventAttendees[msg.sender] = false;
+    //     eventAttendees[_newOwner] = true;
 
-        emit TransferredTicket(msg.sender, _newOwner);
-    }
+    //     emit TransferredTicket(msg.sender, _newOwner);
+    // }
 }
