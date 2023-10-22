@@ -27,7 +27,6 @@ contract AppEventFactory is AppDaoManagement {
         bytes32 hashId;
     }
 
-    address public immutable eventStakerAddress = address(0);
     uint256 public numEvents;
 
     mapping(uint256 => DataEvent) public mapNumEvent;
@@ -66,13 +65,7 @@ contract AppEventFactory is AppDaoManagement {
 
         address owner = address(msg.sender);
 
-        AppEvent newEvent = new AppEvent(
-            eventStakerAddress,
-            owner,
-            _eventInfo,
-            _numericData,
-            true
-        );
+        AppEvent newEvent = new AppEvent(owner, _eventInfo, _numericData, true);
 
         numEvents++;
         bytes32 hashEventId = keccak256(

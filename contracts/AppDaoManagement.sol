@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-contract AppDaoManagement {
+abstract contract AppDaoManagement {
     struct DaoInfo {
         string name;
         address daoAddress;

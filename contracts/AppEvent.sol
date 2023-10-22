@@ -1,21 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-interface EventStakerInterface {
-    function stake(
-        string memory _eventId,
-        uint256 _deadline,
-        bool _eventStatus
-    ) external payable;
+import {EventStaker} from "./EventStaker.sol";
 
-    function withdraw(
-        address _event,
-        string memory _eventId,
-        uint256 _eventDeadlineAttendance
-    ) external;
-}
-
-contract AppEvent {
+contract AppEvent is EventStaker {
     string public eventId;
     string public eventName;
     string public eventDescription;
@@ -29,8 +17,6 @@ contract AppEvent {
     address public eventFactory;
     address public eventOwner;
     bool public eventStatus;
-
-    EventStakerInterface public eventStaker;
 
     enum numericVariables {
         startDate,
@@ -46,18 +32,26 @@ contract AppEvent {
     }
 
     mapping(address => bool) public eventAttendees;
+    mapping(address => bool) public attendeesValidated;
 
     event AttendanceConfirmed(address buyer);
+    event AttendeeValidated(address attendee);
     event RefundedTicket(address buyer);
 
+    modifier onlyHoster() {
+        require(
+            msg.sender == eventOwner,
+            "You are not the hoster of the event"
+        );
+        _;
+    }
+
     constructor(
-        address _eventStakerAddress,
         address _owner,
         string[] memory _eventInfo,
         uint256[] memory _numericData,
         bool _status
     ) {
-        eventStaker = EventStakerInterface(_eventStakerAddress);
         eventOwner = _owner;
 
         eventId = _eventInfo[uint256(eventInfo.eventId)];
@@ -96,9 +90,15 @@ contract AppEvent {
 
     function confirmAttendanceNormalUser() public payable {
         uint256 amount = msg.value;
-        require(amount > 0, "Not enought amount");
+        if (amount == 0) {
+            revert NoStakeIncluded();
+        }
 
-        eventStaker.stake{value: amount}(eventId, eventEndTime, eventStatus);
+        if (block.timestamp >= eventEndTime) {
+            revert DeadlineExceeded(eventEndTime, block.timestamp);
+        }
+
+        _stake();
         _confirmAttendance();
     }
 
@@ -119,14 +119,22 @@ contract AppEvent {
         emit AttendanceConfirmed(msg.sender);
     }
 
-    // Cancel attendance
-    function refundTicket() public {
-        require(eventAttendees[msg.sender] == true, "You do not have a ticket");
+    function validateAttendance(address _attendee) public onlyHoster {
+        require(eventAttendees[_attendee] == true, "Attendee not registered");
+        attendeesValidated[_attendee] = true;
 
-        eventAttendees[msg.sender] = false;
-        eventRemainingTickets += 1;
+        emit AttendeeValidated(_attendee);
+    }
 
-        emit RefundedTicket(msg.sender);
+    function retrieveStaking() public {
+        require(block.timestamp > eventEndTime, "The event is not over yet");
+        require(
+            eventAttendees[msg.sender] == true &&
+                attendeesValidated[msg.sender] == true,
+            "You did not attend the event"
+        );
+
+        _withdraw();
     }
 
     function getEventAttendeeStatus(
