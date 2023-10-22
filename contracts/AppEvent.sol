@@ -1,8 +1,19 @@
 // SPDX-License-Identifier: MIT
+pragma solidity ^0.8.15;
 
-// import './IAppNFT.sol';
+interface EventStakerInterface {
+    function stake(
+        string memory _eventId,
+        uint256 _deadline,
+        bool _eventStatus
+    ) external payable;
 
-pragma solidity ^0.8.19;
+    function withdraw(
+        address _event,
+        string memory _eventId,
+        uint256 _eventDeadlineAttendance
+    ) external;
+}
 
 contract AppEvent {
     string public eventId;
@@ -17,84 +28,59 @@ contract AppEvent {
     bytes32 public eventSecretWordHash;
     address public eventFactory;
     address public eventOwner;
-    address public eventNfts;
+    bool public eventStatus;
 
-    enum consVarInt {
+    EventStakerInterface public eventStaker;
+
+    enum numericVariables {
         startDate,
         endDate,
         capacity
     }
 
-    enum consVarStr {
+    enum eventInfo {
         eventId,
         eventName,
         eventDescription,
-        eventLocation,
-        nftName,
-        nftSymbol,
-        nftUri
+        eventLocation
     }
-
-    enum consVarAdr {
-        owner,
-        nfts
-    }
-
-    struct dataEvent {
-        bool active;
-        uint256 eventNum;
-        string eventId;
-        AppEvent eventAddr;
-        bytes32 hashId;
-    }
-
-    // event mappings
 
     mapping(address => bool) public eventAttendees;
 
-    // event events
-
-    event UpdatedEventName(string eventName);
-    event UpdatedEventDescription(string eventDescription);
-    event UpdatedEventLocation(string eventLocation);
-    event UpdatedEventTotalTickets(uint256 eventTotalTickets);
-    event UpdatedEventStartTime(uint256 eventStartTime);
-    event UpdatedEventEndTime(uint256 eventEndTime);
-    event UpdatedReedemableTimeAndSecretWordHash(
-        uint256 eventReedemableTime,
-        bytes32 eventSecretWordHash
-    );
-    event UpdatedEventOwner(address eventOwner);
-    event BoughtTicket(address buyer);
+    event AttendanceConfirmed(address buyer);
     event RefundedTicket(address buyer);
-    event TransferredTicket(address buyer, address newOwner);
 
     constructor(
+        address _eventStakerAddress,
         address _owner,
-        string[] memory _varStr,
-        uint256[] memory _varInt
+        string[] memory _eventInfo,
+        uint256[] memory _numericData,
+        bool _status
     ) {
+        eventStaker = EventStakerInterface(_eventStakerAddress);
         eventOwner = _owner;
-        // eventNfts = _varAdr[uint256(consVarAdr.nfts)];
 
-        eventId = _varStr[uint256(consVarStr.eventId)];
-        eventName = _varStr[uint256(consVarStr.eventName)];
-        eventDescription = _varStr[uint256(consVarStr.eventDescription)];
-        eventLocation = _varStr[uint256(consVarStr.eventLocation)];
+        eventId = _eventInfo[uint256(eventInfo.eventId)];
+        eventName = _eventInfo[uint256(eventInfo.eventName)];
+        eventDescription = _eventInfo[uint256(eventInfo.eventDescription)];
+        eventLocation = _eventInfo[uint256(eventInfo.eventLocation)];
 
-        eventStartTime = _varInt[uint256(consVarInt.startDate)];
-        eventEndTime = _varInt[uint256(consVarInt.endDate)];
-        eventTotalTickets = eventRemainingTickets = _varInt[
-            uint256(consVarInt.capacity)
+        eventStartTime = _numericData[uint256(numericVariables.startDate)];
+        eventEndTime = _numericData[uint256(numericVariables.endDate)];
+        eventTotalTickets = eventRemainingTickets = _numericData[
+            uint256(numericVariables.capacity)
         ];
+
+        eventStatus = _status;
     }
 
+    // This is in case the caller is part from the dao
     // function reedemNft(string calldata _eventSecretWord) public {
-    //     require(eventAttendees[msg.sender] == true, "You do not have a ticket");
-    //     require(
-    //         block.timestamp <= eventReedemableTime,
-    //         "You cannot reedem your NFT yet"
-    //     );
+    //     // require(eventAttendees[msg.sender] == true, "You do not have a ticket");
+    //     // require(
+    //     //     block.timestamp <= eventReedemableTime,
+    //     //     "You cannot reedem your NFT yet"
+    //     // );
     //     require(
     //         keccak256(abi.encodePacked(_eventSecretWord)) ==
     //             eventSecretWordHash,
@@ -108,103 +94,44 @@ contract AppEvent {
     //     IAppNFT(eventNfts).safeMint(msg.sender);
     // }
 
-    // function updateEventName(string memory _eventName) public {
-    //     eventName = _eventName;
+    function confirmAttendanceNormalUser() public payable {
+        uint256 amount = msg.value;
+        require(amount > 0, "Not enought amount");
 
-    //     emit UpdatedEventName(eventName);
-    //     (_eventName);
-    // }
+        eventStaker.stake{value: amount}(eventId, eventEndTime, eventStatus);
+        _confirmAttendance();
+    }
 
-    // function updateEventDescription(
-    //     string memory _eventDescription // onlyOwner
-    // ) public {
-    //     eventDescription = _eventDescription;
+    function confirmAttendanceDaoUser() public {
+        // reedemNft(_eventSecretWord);
+        _confirmAttendance();
+    }
 
-    //     emit UpdatedEventDescription(eventDescription);
-    // }
+    function _confirmAttendance() internal {
+        require(
+            eventAttendees[msg.sender] == false,
+            "You already confirmed previously"
+        );
 
-    // function updateEventLocation(
-    //     string memory _eventLocation // onlyOwner
-    // ) public {
-    //     eventLocation = _eventLocation;
+        eventAttendees[msg.sender] = true;
+        eventRemainingTickets -= 1;
 
-    //     emit UpdatedEventLocation(eventLocation);
-    // }
+        emit AttendanceConfirmed(msg.sender);
+    }
 
-    // function updateEventStartTime(
-    //     uint256 _eventStartTime // onlyOwner
-    // ) public {
-    //     require(
-    //         _eventStartTime > eventStartTime,
-    //         "Start time must be greater than start time"
-    //     );
+    // Cancel attendance
+    function refundTicket() public {
+        require(eventAttendees[msg.sender] == true, "You do not have a ticket");
 
-    //     eventStartTime = _eventStartTime;
+        eventAttendees[msg.sender] = false;
+        eventRemainingTickets += 1;
 
-    //     emit UpdatedEventStartTime(eventStartTime);
-    // }
+        emit RefundedTicket(msg.sender);
+    }
 
-    // function updateEventEndTime(
-    //     uint256 _eventEndTime // onlyOwner
-    // ) public {
-    //     require(
-    //         _eventEndTime > eventStartTime,
-    //         "End time must be greater than start time"
-    //     );
-
-    //     eventEndTime = _eventEndTime;
-
-    //     emit UpdatedEventEndTime(eventEndTime);
-    // }
-
-    // function updateEventTotalTickets(
-    //     uint256 _eventTotalTickets // onlyOwner
-    // ) public {
-    //     require(
-    //         _eventTotalTickets >= eventRemainingTickets,
-    //         "Total tickets must be greater than or equal to remaining tickets"
-    //     );
-
-    //     eventTotalTickets = _eventTotalTickets;
-
-    //     emit UpdatedEventTotalTickets(eventTotalTickets);
-    // }
-
-    // function updateEventOwner(
-    //     address _eventOwner // onlyOwner
-    // ) public {
-    //     eventOwner = _eventOwner;
-
-    //     emit UpdatedEventOwner(eventOwner);
-    // }
-
-    // function buyTicket() public {
-    //     require(
-    //         eventAttendees[msg.sender] == false,
-    //         "You already have a ticket"
-    //     );
-
-    //     eventAttendees[msg.sender] = true;
-    //     eventRemainingTickets -= 1;
-
-    //     emit BoughtTicket(msg.sender);
-    // }
-
-    // function refundTicket() public {
-    //     require(eventAttendees[msg.sender] == true, "You do not have a ticket");
-
-    //     eventAttendees[msg.sender] = false;
-    //     eventRemainingTickets += 1;
-
-    //     emit RefundedTicket(msg.sender);
-    // }
-
-    // function transferTicket(address _newOwner) public {
-    //     require(eventAttendees[msg.sender] == true, "You do not have a ticket");
-
-    //     eventAttendees[msg.sender] = false;
-    //     eventAttendees[_newOwner] = true;
-
-    //     emit TransferredTicket(msg.sender, _newOwner);
-    // }
+    function getEventAttendeeStatus(
+        address _attendee
+    ) external view returns (bool) {
+        return eventAttendees[_attendee];
+    }
 }
