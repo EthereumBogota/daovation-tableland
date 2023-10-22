@@ -65,7 +65,13 @@ contract AppEventFactory is AppDaoManagement {
 
         address owner = address(msg.sender);
 
-        AppEvent newEvent = new AppEvent(owner, _eventInfo, _numericData, true);
+        AppEvent newEvent = new AppEvent(
+            daoInfo.daoAddress,
+            owner,
+            _eventInfo,
+            _numericData,
+            true
+        );
 
         numEvents++;
         bytes32 hashEventId = keccak256(

@@ -3,6 +3,13 @@ pragma solidity ^0.8.15;
 
 import {EventStaker} from "./EventStaker.sol";
 
+interface IAppNFTGenerator {
+    function registerAttendanceDaoEvent(
+        address _attendee,
+        address _daoAddress
+    ) external;
+}
+
 contract AppEvent is EventStaker {
     string public eventId;
     string public eventName;
@@ -17,6 +24,9 @@ contract AppEvent is EventStaker {
     address public eventFactory;
     address public eventOwner;
     bool public eventStatus;
+
+    address public dao;
+    address public nftGenerator = address(0); // ! to replace
 
     enum numericVariables {
         startDate,
@@ -47,11 +57,13 @@ contract AppEvent is EventStaker {
     }
 
     constructor(
+        address _daoAddress,
         address _owner,
         string[] memory _eventInfo,
         uint256[] memory _numericData,
         bool _status
     ) {
+        dao = _daoAddress;
         eventOwner = _owner;
 
         eventId = _eventInfo[uint256(eventInfo.eventId)];
@@ -68,26 +80,6 @@ contract AppEvent is EventStaker {
         eventStatus = _status;
     }
 
-    // This is in case the caller is part from the dao
-    // function reedemNft(string calldata _eventSecretWord) public {
-    //     // require(eventAttendees[msg.sender] == true, "You do not have a ticket");
-    //     // require(
-    //     //     block.timestamp <= eventReedemableTime,
-    //     //     "You cannot reedem your NFT yet"
-    //     // );
-    //     require(
-    //         keccak256(abi.encodePacked(_eventSecretWord)) ==
-    //             eventSecretWordHash,
-    //         "Secret word is incorrect"
-    //     );
-    //     require(
-    //         IAppNFT(eventNfts).balanceOf(msg.sender) == 0,
-    //         "You already have a NFT"
-    //     );
-
-    //     IAppNFT(eventNfts).safeMint(msg.sender);
-    // }
-
     function confirmAttendanceNormalUser() public payable {
         uint256 amount = msg.value;
         if (amount == 0) {
@@ -99,11 +91,6 @@ contract AppEvent is EventStaker {
         }
 
         _stake();
-        _confirmAttendance();
-    }
-
-    function confirmAttendanceDaoUser() public {
-        // reedemNft(_eventSecretWord);
         _confirmAttendance();
     }
 
@@ -122,6 +109,11 @@ contract AppEvent is EventStaker {
     function validateAttendance(address _attendee) public onlyHoster {
         require(eventAttendees[_attendee] == true, "Attendee not registered");
         attendeesValidated[_attendee] = true;
+
+        IAppNFTGenerator(nftGenerator).registerAttendanceDaoEvent(
+            _attendee,
+            dao
+        );
 
         emit AttendeeValidated(_attendee);
     }

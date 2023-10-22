@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
+import {AppNFT} from "./AppNFT.sol";
+
 abstract contract AppDaoManagement {
     struct DaoInfo {
         string name;
         address daoAddress;
+        address nftAddress;
     }
 
     mapping(address => DaoInfo) private daos;
@@ -12,9 +15,13 @@ abstract contract AppDaoManagement {
     function registerDao(string memory _daoName, address _daoAddress) public {
         require(bytes(_daoName).length > 0, "Dao name cannot be empty");
 
+        AppNFT daoNFT = new AppNFT(_daoAddress, "");
+        daoNFT.transferOwnership(msg.sender);
+
         DaoInfo storage newDao = daos[_daoAddress];
         newDao.name = _daoName;
         newDao.daoAddress = _daoAddress;
+        newDao.nftAddress = address(daoNFT);
     }
 
     function getDaoInfo(
